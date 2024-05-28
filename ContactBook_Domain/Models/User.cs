@@ -20,8 +20,6 @@ public class User : IdentityUser
 
     public int CompanyId { get; set; }
     public Company? Company { get; set; }
-
-    public ICollection<RefreshToken> RefreshTokens { get; set; } = new List<RefreshToken>();
 }
 
 public enum UserStatus

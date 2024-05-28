@@ -20,6 +20,7 @@ namespace ContactBook_App.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
@@ -83,7 +84,6 @@ namespace ContactBook_App.Controllers
         }
 
         [HttpPost]
-        [Authorize]
         public async Task<ActionResult<ViewUserDTO>> InviteUser(InviteUserDTO inviteUserDTO)
         {
 

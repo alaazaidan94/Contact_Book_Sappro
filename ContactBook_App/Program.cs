@@ -21,7 +21,6 @@ builder.Services.AddDbContext<ContactBookContext>(options =>
 });
 
 // Add services to the container.
-builder.Services.AddScoped<JWTService>();
 
 builder.Services.AddScoped<AuthService>();
 
@@ -31,11 +30,13 @@ builder.Services.AddScoped<ContextSeedService>();
 
 
 builder.Services.AddScoped<IRepository<Company, int>, CompanyRepository>();
+
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 builder.Services.AddControllers();
+
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

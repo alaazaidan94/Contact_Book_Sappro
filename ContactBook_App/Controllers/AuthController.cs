@@ -4,10 +4,11 @@ using ContactBook_Domain.Models;
 using ContactBook_Infrastructure.DBContexts;
 using ContactBook_Services.AccountServices;
 using ContactBook_Services.Repository;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 
@@ -19,7 +20,6 @@ namespace ContactBook_App.Controllers
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
-        private readonly JWTService _jwtService;
         private readonly IMapper _mapper;
         private readonly IRepository<Company, int> _companyRepo;
         private readonly ContactBookContext _context;
@@ -30,7 +30,6 @@ namespace ContactBook_App.Controllers
         public AuthController(
             UserManager<User> userManager,
             SignInManager<User> signInManager,
-            JWTService jwtService,
             IMapper mapper,
             IRepository<Company, int> companyRepo,
             ContactBookContext context,
@@ -41,7 +40,6 @@ namespace ContactBook_App.Controllers
         {
             this._userManager = userManager;
             this._signInManager = signInManager;
-            this._jwtService = jwtService;
             this._mapper = mapper;
             this._companyRepo = companyRepo;
             this._context = context;
@@ -50,29 +48,13 @@ namespace ContactBook_App.Controllers
             _authService = authService;
         }
 
-        [Authorize]
-        [HttpPost("refresh-token")]
-        public async Task<ActionResult<UserDto>> RefereshToken()
-        {
-            var token = Request.Cookies["identityAppRefreshToken"];
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (_jwtService.IsValidRefreshTokenAsync(userId, token).GetAwaiter().GetResult())
-            {
-                var user = await _userManager.FindByIdAsync(userId);
-                if (user == null) return Unauthorized("Invalid or expired token, please try to login");
-                return await CreateApplicationUserDto(user);
-            }
-
-            return Unauthorized("Invalid or expired token, please try to login");
-        }
 
         [HttpPost("login")]
-        public async Task<ActionResult<UserDto>> Login(LoginDTO loginDTO)
+        public async Task<ActionResult<UserDTO>> Login(LoginDTO loginDTO)
         {
             var user = await _userManager.FindByEmailAsync(loginDTO.Email);
 
-            if (user == null) 
+            if (user == null)
                 return Unauthorized("Invalid username or password");
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, loginDTO.Password, false);
@@ -81,10 +63,10 @@ namespace ContactBook_App.Controllers
                 return Unauthorized("Invalid username or password");
 
 
-            if (user.Status == UserStatus.Pending || user.EmailConfirmed == false) 
+            if (user.Status == UserStatus.Pending || user.EmailConfirmed == false)
                 return Unauthorized("Please confrim your email address");
 
-            return await CreateApplicationUserDto(user);
+            return await CreateUserDTO(user);
         }
 
         [HttpPost("register")]
@@ -139,10 +121,10 @@ namespace ContactBook_App.Controllers
         {
             var user = await _userManager.FindByIdAsync(userId);
 
-            if (user == null) 
+            if (user == null)
                 return Unauthorized("This email address has not been registered yet");
 
-            if (user.EmailConfirmed == true) 
+            if (user.EmailConfirmed == true)
                 return BadRequest("Your email was confirmed before. Please login to your account");
 
             try
@@ -170,15 +152,15 @@ namespace ContactBook_App.Controllers
         [HttpPost("resend-confirm-email-link")]
         public async Task<IActionResult> ResendEmailConfirmationLink(EmailDTO emailDTO)
         {
-            if (string.IsNullOrEmpty(emailDTO.Email)) 
+            if (string.IsNullOrEmpty(emailDTO.Email))
                 return BadRequest("Invalid email");
-            
+
             var user = await _userManager.FindByEmailAsync(emailDTO.Email);
 
-            if (user == null) 
+            if (user == null)
                 return Unauthorized("This email address has not been registerd yet");
-           
-            if (user.EmailConfirmed == true) 
+
+            if (user.EmailConfirmed == true)
                 return BadRequest("Your email address was confirmed before. Please login to your account");
 
             try
@@ -199,15 +181,15 @@ namespace ContactBook_App.Controllers
         [HttpPost("forgot-password")]
         public async Task<IActionResult> ForgotPassword(EmailDTO emailDTO)
         {
-            if (string.IsNullOrEmpty(emailDTO.Email)) 
+            if (string.IsNullOrEmpty(emailDTO.Email))
                 return BadRequest("Invalid email");
 
             var user = await _userManager.FindByEmailAsync(emailDTO.Email);
 
-            if (user == null) 
+            if (user == null)
                 return Unauthorized("This email address has not been registerd yet");
 
-            if (user.EmailConfirmed == false) 
+            if (user.EmailConfirmed == false)
                 return BadRequest("Please confirm your email address first.");
 
             try
@@ -230,10 +212,10 @@ namespace ContactBook_App.Controllers
         {
             var user = await _userManager.FindByEmailAsync(email);
 
-            if (user == null) 
+            if (user == null)
                 return Unauthorized("This email address has not been registerd yet");
-           
-            if (user.EmailConfirmed == false) 
+
+            if (user.EmailConfirmed == false)
                 return BadRequest("PLease confirm your email address first");
 
             try
@@ -254,7 +236,7 @@ namespace ContactBook_App.Controllers
                 return BadRequest("Invalid token. Please try again");
             }
         }
-      
+
         [HttpPost("set-password")]
         public async Task<IActionResult> SetPassword(string email, string token, SetPasswordDTO setPassword)
         {
@@ -286,32 +268,44 @@ namespace ContactBook_App.Controllers
         }
 
 
-
-        private async Task<UserDto> CreateApplicationUserDto(User user)
+        private Task<UserDTO> CreateUserDTO(User user)
         {
-            await SaveRefreshTokenAsync(user);
-            return new UserDto
+            var jwtKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Key"]!));
+            var days = int.Parse(_configuration["JWT:AddDays"]!);
+
+            var userClaims = new List<Claim>
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.Id),
+                new Claim(ClaimTypes.Email, user.Email!),
+                new Claim(ClaimTypes.GivenName, user.FirstName),
+                new Claim(ClaimTypes.Surname, user.LastName),
+                new Claim(ClaimTypes.Role, user.Role.ToString()),
+            };
+
+            var credentials = new SigningCredentials(jwtKey, SecurityAlgorithms.HmacSha512Signature);
+
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(userClaims),
+                Expires = DateTime.UtcNow.AddMinutes(days),
+                SigningCredentials = credentials,
+                Issuer = _configuration["JWT:Issuer"]
+            };
+
+            var tokenHandler = new JwtSecurityTokenHandler();
+
+            var jwt = tokenHandler.CreateToken(tokenDescriptor);
+
+            var userDTO = new UserDTO
             {
                 UserId = user.Id,
-                FullName = user.FirstName + " " + user.LastName,
+                FullName = $"{user.FirstName} {user.LastName}",
                 Role = user.Role,
-                Token = await _jwtService.CreateJWT(user),
-            };
-        }
-        private async Task SaveRefreshTokenAsync(User user)
-        {
-            var refreshToken = _jwtService.CreateRefreshToken(user);
-
-            await _jwtService.SaveOrUpdateRefreshToken(refreshToken, user);
-
-            var cookieOptions = new CookieOptions
-            {
-                Expires = refreshToken.DateExpiresUtc,
-                IsEssential = true,
-                HttpOnly = true,
+                Exp = jwt.ValidTo,
+                Token = tokenHandler.WriteToken(jwt)
             };
 
-            Response.Cookies.Append("identityAppRefreshToken", refreshToken.Token, cookieOptions);
+            return Task.FromResult(userDTO);
         }
 
 

@@ -32,7 +32,7 @@ namespace ContactBook_Services.AccountServices
 
             token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-            var url = $"{_configuration["JWT:ClientUrl"]}/{_configuration["Email:ConfirmEmailPath"]}?userId={user.Id}&token={token}";
+            var url = $"{_configuration["appUrl"]}/{_configuration["Email:ConfirmEmailPath"]}?userId={user.Id}&token={token}";
 
             var body = $"<p>Hello: {user.FirstName} {user.LastName}</p>" +
                 "<p>Please confirm your email address by clicking on the following link.</p>" +
@@ -49,7 +49,6 @@ namespace ContactBook_Services.AccountServices
 
             return false;
         }
-
         public async Task<bool> SendConfirmAndSetPasswordAsync(User user)
         {
             var tokenConfirm = await _userManager.GenerateEmailConfirmationTokenAsync(user);
@@ -58,8 +57,8 @@ namespace ContactBook_Services.AccountServices
             tokenConfirm = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(tokenConfirm));
             tokenSetPass = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(tokenSetPass));
 
-            var urlConfirm = $"{_configuration["JWT:ClientUrl"]}/{_configuration["Email:ConfirmEmailPath"]}?userId={user.Id}&token={tokenConfirm}";
-            var urlSetPass = $"{_configuration["JWT:ClientUrl"]}/{_configuration["Email:SetPasswordPath"]}?userId={user.Id}&token={tokenSetPass}";
+            var urlConfirm = $"{_configuration["appUrl"]}/{_configuration["Email:ConfirmEmailPath"]}?userId={user.Id}&token={tokenConfirm}";
+            var urlSetPass = $"{_configuration["appUrl"]}/{_configuration["Email:SetPasswordPath"]}?userId={user.Id}&token={tokenSetPass}";
 
             var body = $"<p>Hello: {user.FirstName} {user.LastName}</p>" +
                 "<p>You have been invited to try the SAPPRO application.</p>" +
@@ -85,7 +84,7 @@ namespace ContactBook_Services.AccountServices
 
             token = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
 
-            var url = $"{_configuration["JWT:ClientUrl"]}/{_configuration["Email:ResetPasswordPath"]}?email={user.Email}&token={token}";
+            var url = $"{_configuration["appUrl"]}/{_configuration["Email:ResetPasswordPath"]}?email={user.Email}&token={token}";
 
             var body = $"<p>Hello: {user.FirstName} {user.LastName}</p>" +
                $"<p>Username: {user.UserName}.</p>" +

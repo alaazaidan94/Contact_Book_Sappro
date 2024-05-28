@@ -2,12 +2,14 @@
 using ContactBook_App.DTOs.Company;
 using ContactBook_Domain.Models;
 using ContactBook_Services.Repository;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ContactBook_App.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class CompaniesController : ControllerBase
     {
         private readonly IRepository<Company, int> _companyRepo;
