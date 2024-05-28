@@ -287,7 +287,7 @@ namespace ContactBook_App.Controllers
             var tokenDescriptor = new SecurityTokenDescriptor
             {
                 Subject = new ClaimsIdentity(userClaims),
-                Expires = DateTime.UtcNow.AddMinutes(days),
+                Expires = DateTime.UtcNow.AddDays(days),
                 SigningCredentials = credentials,
                 Issuer = _configuration["JWT:Issuer"]
             };

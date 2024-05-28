@@ -1,7 +1,4 @@
 ﻿using AutoMapper;
-using ContactBook_App.DTOs;
-using ContactBook_App.DTOs.Company;
-using ContactBook_App.DTOs.Contact;
 using ContactBook_App.DTOs.Users;
 using ContactBook_Domain.Models;
 using ContactBook_Services.AccountServices;
@@ -10,9 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.ComponentModel.Design;
-using System.Net;
-using System.Net.Mail;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -157,14 +151,14 @@ namespace ContactBook_App.Controllers
             return NoContent();
         }
 
-        [HttpPost("sendEmail")]
-        public async Task<IActionResult> SendEmail(SendEmailDTO sendEmailDTO)
-        {
+        //[HttpPost("sendEmail")]
+        //public async Task<IActionResult> SendEmail(SendEmailDTO sendEmailDTO)
+        //{
 
-           await _mailService.SendEmail(sendEmailDTO.ToEmail,sendEmailDTO.Subject,sendEmailDTO.Body);
+        //   await _mailService.SendEmail(sendEmailDTO.ToEmail,sendEmailDTO.Subject,sendEmailDTO.Body);
 
-            return Ok();
+        //    return Ok();
            
-        }
+        //}
     }
 }

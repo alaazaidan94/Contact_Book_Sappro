@@ -12,7 +12,7 @@ namespace ContactBook_App.DTOs.Users
         public required string LastName { get; set; }
 
         [MaxLength(100)]
-        public required string VatNumber { get; set; }
+        public required string PhoneNumber { get; set; }
 
         public UserStatus Status { get; set; }
         public Roles Role { get; set; }

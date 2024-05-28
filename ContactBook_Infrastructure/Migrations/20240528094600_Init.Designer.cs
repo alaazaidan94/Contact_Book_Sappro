@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ContactBook_Infrastructure.Migrations
 {
     [DbContext(typeof(ContactBookContext))]
-    [Migration("20240527230836_Init")]
+    [Migration("20240528094600_Init")]
     partial class Init
     {
         /// <inheritdoc />
@@ -42,7 +42,7 @@ namespace ContactBook_Infrastructure.Migrations
                     b.Property<DateOnly>("CreatedAt")
                         .HasColumnType("date");
 
-                    b.Property<string>("userId")
+                    b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
 
@@ -50,7 +50,7 @@ namespace ContactBook_Infrastructure.Migrations
 
                     b.HasIndex("ContactId");
 
-                    b.HasIndex("userId");
+                    b.HasIndex("UserId");
 
                     b.ToTable("Activities");
                 });
@@ -121,9 +121,6 @@ namespace ContactBook_Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int>("CompanyId")
-                        .HasColumnType("int");
-
                     b.Property<string>("EmailOne")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -153,34 +150,6 @@ namespace ContactBook_Infrastructure.Migrations
                     b.HasKey("ContactId");
 
                     b.ToTable("Contacts");
-                });
-
-            modelBuilder.Entity("ContactBook_Domain.Models.RefreshToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("DateCreatedUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("DateExpiresUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Token")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("RefreshTokens");
                 });
 
             modelBuilder.Entity("ContactBook_Domain.Models.User", b =>
@@ -416,26 +385,15 @@ namespace ContactBook_Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("ContactBook_Domain.Models.User", "user")
+                    b.HasOne("ContactBook_Domain.Models.User", "User")
                         .WithMany()
-                        .HasForeignKey("userId")
+                        .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("Contact");
 
-                    b.Navigation("user");
-                });
-
-            modelBuilder.Entity("ContactBook_Domain.Models.RefreshToken", b =>
-                {
-                    b.HasOne("ContactBook_Domain.Models.User", "user")
-                        .WithMany("RefreshTokens")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("user");
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("ContactBook_Domain.Models.User", b =>
@@ -498,11 +456,6 @@ namespace ContactBook_Infrastructure.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("ContactBook_Domain.Models.User", b =>
-                {
-                    b.Navigation("RefreshTokens");
                 });
 #pragma warning restore 612, 618
         }
