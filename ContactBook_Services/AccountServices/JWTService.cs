@@ -38,11 +38,12 @@ namespace ContactBook_Services.AccountServices
                 new Claim(ClaimTypes.Email, user.Email!),
                 new Claim(ClaimTypes.GivenName, user.FirstName),
                 new Claim(ClaimTypes.Surname, user.LastName),
+                new Claim(ClaimTypes.Role, user.Role.ToString()),
 
             };
 
-            var roles = await _userManager.GetRolesAsync(user);
-            userClaims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
+            //var roles = await _userManager.GetRolesAsync(user);
+            //userClaims.AddRange(roles.Select(role => new Claim(ClaimTypes.Role, role)));
 
             var creadentials = new SigningCredentials(_jwtKey, SecurityAlgorithms.HmacSha512Signature);
             var tokenDescriptor = new SecurityTokenDescriptor

@@ -27,7 +27,5 @@ namespace ContactBook_Domain.Models
         public string Mobile { get; set; }
         public string AddressOne { get; set; }
         public string AddressTwo { get; set; }
-
-        public int CompanyId { get; set; }
     }
 }
