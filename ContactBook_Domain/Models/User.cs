@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity;
+﻿
+using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
 
 namespace ContactBook_Domain.Models;
@@ -24,9 +25,9 @@ public class User : IdentityUser
 
 public enum UserStatus
 {
-    Locked,
     Pending,
-    Active
+    Active,
+    Locked
 }
 
 public enum Roles

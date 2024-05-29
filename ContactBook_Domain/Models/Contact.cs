@@ -27,5 +27,20 @@ namespace ContactBook_Domain.Models
         public string Mobile { get; set; }
         public string AddressOne { get; set; }
         public string AddressTwo { get; set; }
+
+        public string ImageName { get; set; }
+        public string ImageUrl { get; set; }
+        public ContactState ContactState { get; set; } = ContactState.Active;
+        public bool isFavorite { get; set; } = false;
+        public bool isDelete { get; set; } = false;
+        public int CompanyId { get; set; }
+        public Company Company { get; set; }
+
+    }
+
+    public enum ContactState
+    {
+        Active,
+        Inactive
     }
 }

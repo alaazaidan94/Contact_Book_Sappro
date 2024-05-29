@@ -3,7 +3,6 @@ using ContactBook_Domain.Models;
 using ContactBook_Infrastructure.DBContexts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using System.Security.Claims;
 
 namespace ContactBook_Infrastructure.InitialData
 {

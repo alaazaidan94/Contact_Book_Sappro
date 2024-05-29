@@ -1,53 +1,52 @@
 ﻿using AutoMapper;
-using ContactBook_App.DTOs.Company;
 using ContactBook_Domain.Models;
-using ContactBook_Services.Repository;
+using ContactBook_Services;
+using ContactBook_Services.DTOs.Company;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace ContactBook_App.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Admin")]
     public class CompaniesController : ControllerBase
     {
-        private readonly IRepository<Company, int> _companyRepo;
+        private readonly CompanyService _companyService;
         private readonly IMapper _mapper;
 
         public CompaniesController(
-            IRepository<Company,int> companyRepo,
+            CompanyService companyService,
             IMapper mapper)
         {
-            _companyRepo = companyRepo;
+            _companyService = companyService;
             _mapper = mapper;
         }
 
         [HttpGet]
         public async Task<ActionResult<Company>> GetCompanies()
         {
-            var companies = await _companyRepo.GetAllAsync();
+            var companies = await _companyService.GetAllAsync();
 
             return Ok(companies);
         }
 
-        [HttpPut("{companyId}")]
-        public async Task<ActionResult<Company>> EditCompany(int companyId,EditCompanyDTO editCompanyDTO)
+        [HttpPut]
+        public async Task<ActionResult<Company>> EditCompany(EditCompanyDTO editCompanyDTO)
         {
-            if (int.IsNegative(companyId))
-                return BadRequest("Invalid Company");
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (currentUserId == null)
+                return BadRequest();
 
-            var company = await _companyRepo.GetByIdAsync(companyId);
-            if (company == null)
-                return BadRequest("Company Not Found");
+            if (!await _companyService.UpdateAsync(currentUserId, editCompanyDTO))
+                return BadRequest("The company has not been modified");
 
-             _mapper.Map(editCompanyDTO,company);
-
-            var result = await _companyRepo.UpdateAsync(company);
-            if (!result)
-                return BadRequest("Invalid Edit Company");
-
-            return Ok(company);
+            return Ok(new JsonResult(new
+            {
+                title = "Company modified",
+                message = "Your company is modified."
+            }));
         }
     }
 }

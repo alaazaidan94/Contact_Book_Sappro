@@ -1,12 +1,10 @@
 ﻿using AutoMapper;
-using ContactBook_App.DTOs.Users;
 using ContactBook_Domain.Models;
-using ContactBook_Services.AccountServices;
-using ContactBook_Services.Repository;
+using ContactBook_Services;
+using ContactBook_Services.DTOs.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using System.Text.Json;
 
@@ -18,22 +16,22 @@ namespace ContactBook_App.Controllers
     public class UsersController : ControllerBase
     {
         private readonly UserManager<User> _userManager;
-        private readonly IUserRepository _userRepo;
+        private readonly UserService _userService;
         private readonly IMapper _mapper;
         private readonly IConfiguration _configuration;
-        private readonly IMailService _mailService;
+        private readonly MailService _mailService;
         private readonly AuthService _authService;
 
         public UsersController(
             UserManager<User> userManager,
-            IUserRepository userRepo,
+            UserService userService,
             IMapper mapper,
             IConfiguration configuration,
-            IMailService mailService,
+            MailService mailService,
             AuthService authService)
         {
             _userManager = userManager;
-            _userRepo = userRepo;
+            _userService = userService;
             _mapper = mapper;
             _configuration = configuration;
             _mailService = mailService;
@@ -44,35 +42,28 @@ namespace ContactBook_App.Controllers
         [HttpGet]
         public async Task<ActionResult<List<ViewUserDTO>>> GetUsers()
         {
-            var users = await _userManager.Users.ToListAsync();
-            var viewUserDTO = _mapper.Map<List<ViewUserDTO>>(users);
-            return Ok(viewUserDTO);
+            var viewUsersDTO = await _userService.GetAllAsync();
+
+            return Ok(viewUsersDTO);
         }
 
         [HttpGet("page/{pageNumber}")]
         public async Task<ActionResult<List<ViewUserDTO>>> GetUsers(int pageNumber)
         {
-            int pageSize = Convert.ToInt32(_configuration.GetSection("maxPageSize").Value);
+            var (viewUsersDTO, paginationMetaData) = await _userService.GetUsersAsyncPagination(pageNumber);
 
-            var (users, paginationMetaData) = await _userRepo.GetUsersAsyncPagination(pageNumber, pageSize);
+            Response.Headers.TryAdd("X-Pagination", JsonSerializer.Serialize(paginationMetaData));    
 
-            Response.Headers.Add("X-Pagination", JsonSerializer.Serialize(paginationMetaData));
-
-            // mapping object user for viewUserDTO
-            var viewUserDTO = _mapper.Map<List<ViewUserDTO>>(users);
-
-            return Ok(viewUserDTO);
+            return Ok(viewUsersDTO);
         }
 
         [HttpGet("{userId}")]
         public async Task<ActionResult<ViewUserDTO>> GetUser(string userId)
         {
-            var user = await _userRepo.GetByIdAsync(userId);
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest("User Not Found");
 
-            if (user is null)
-                return NotFound("User Not Found");
-
-            var viewUserDTO = _mapper.Map<ViewUserDTO>(user);
+            var viewUserDTO = await _userService.GetByIdAsync(userId);
 
             return Ok(viewUserDTO);
         }
@@ -80,38 +71,24 @@ namespace ContactBook_App.Controllers
         [HttpPost]
         public async Task<ActionResult<ViewUserDTO>> InviteUser(InviteUserDTO inviteUserDTO)
         {
+            if (inviteUserDTO == null)
+                return BadRequest("Invaild model");
 
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
-            if (string.IsNullOrEmpty(userId))
-                return BadRequest("User Not Found");
+            if (currentUserId == null)
+                return BadRequest("Faild to get current User");
 
-            var currentUuser = await _userManager.FindByIdAsync(userId);
-
-            if (currentUuser is null)
-                return BadRequest("User Not Found");
-
-            var companyId = currentUuser.CompanyId;
-
-            var user = _mapper.Map<InviteUserDTO, User>(inviteUserDTO, opts =>
-            {
-                opts.AfterMap((src, dest) =>
-                {
-                    dest.UserName = inviteUserDTO.Email;
-                    dest.CompanyId = companyId;
-                });
-            });
-
-            var result = await _userManager.CreateAsync(user);
-
-            if (!result.Succeeded) 
-                return BadRequest(result.Errors);
+            if (!await _userService.InviteUser(currentUserId, inviteUserDTO))
+                return BadRequest("Invalid Invite User");
 
             try
             {
-                if (await _authService.SendConfirmAndSetPasswordAsync(user))
+                if (await _authService.SendConfirmAndSetPasswordAsync(inviteUserDTO.Email))
                 {
-                    return Ok(new JsonResult(new { title = "Invite Success", message = "The invitation has been sent successfully, please confrim your email address and set password" }));
+                    return Ok(new JsonResult(new { 
+                        title = "Invite Success", 
+                        message = "The invitation has been sent successfully, please confrim your email address and set password" }));
                 }
 
                 return BadRequest("Failed to send email. Please contact admin");
@@ -126,29 +103,51 @@ namespace ContactBook_App.Controllers
         public async Task<IActionResult> EditUser(string userId, EditUserDTO editUserDTO)
         {
             if (string.IsNullOrWhiteSpace(userId))
-                return BadRequest("Invalid User");
+                return BadRequest("Invalid UserId");
 
-            var user = await _userRepo.GetByIdAsync(userId);
-            if (user == null)
-                return BadRequest("User Not Found");
+            if (editUserDTO == null)
+                return BadRequest("Invalid model");
 
-            _mapper.Map(editUserDTO, user);
+            if (!await _userService.UpdateAsync(userId, editUserDTO))
+                return BadRequest("Update failed");
 
-            var result = await _userRepo.UpdateAsync(user);
-            if (!result)
-                return BadRequest("Invalid Edit User");
+            return Ok(new JsonResult(new
+            {
+                title = "User modified",
+                message = "User has been modified successfully"
+            }));
+        }
 
-            return Ok(user);
+        [HttpDelete("soft-delete/{userId}")]
+        public async Task<IActionResult> SoftDeleteUser(string userId)
+        {
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest("Invalid userId");
+
+            if (! await _userService.SoftDeleteAsync(userId))
+                return BadRequest("Invalid Deleted");
+
+            return Ok(new JsonResult(new
+            {
+                title = "User deleted",
+                message = "User has been deleted successfully"
+            }));
         }
 
         [HttpDelete("{userId}")]
         public async Task<IActionResult> DeleteUser(string userId)
         {
-            var result = await _userRepo.SoftDeleteAsync(userId);
-            if (!result)
+            if (string.IsNullOrEmpty(userId))
+                return BadRequest("Invalid userId");
+
+            if (!await _userService.DeleteAsync(userId))
                 return BadRequest("Invalid Deleted");
 
-            return NoContent();
+            return Ok(new JsonResult(new
+            {
+                title = "User deleted",
+                message = "User has been deleted successfully"
+            }));
         }
 
         //[HttpPost("sendEmail")]
@@ -158,7 +157,7 @@ namespace ContactBook_App.Controllers
         //   await _mailService.SendEmail(sendEmailDTO.ToEmail,sendEmailDTO.Subject,sendEmailDTO.Body);
 
         //    return Ok();
-           
+
         //}
     }
 }

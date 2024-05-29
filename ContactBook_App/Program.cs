@@ -1,13 +1,11 @@
 using ContactBook_Domain.Models;
 using ContactBook_Infrastructure.DBContexts;
 using ContactBook_Infrastructure.InitialData;
-using ContactBook_Services.AccountServices;
-using ContactBook_Services.Repository;
+using ContactBook_Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,14 +22,15 @@ builder.Services.AddDbContext<ContactBookContext>(options =>
 
 builder.Services.AddScoped<AuthService>();
 
-builder.Services.AddScoped<IMailService,MailService>();
+builder.Services.AddScoped<MailService>();
 
 builder.Services.AddScoped<ContextSeedService>();
 
+builder.Services.AddScoped<CompanyService>();
 
-builder.Services.AddScoped<IRepository<Company, int>, CompanyRepository>();
+builder.Services.AddScoped<UserService>();
 
-builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<LogService>();
 
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
@@ -40,11 +39,7 @@ builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 
-builder.Services.AddSwaggerGen(c =>
-{
-    c.EnableAnnotations();
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "My API", Version = "v1" });
-});
+builder.Services.AddSwaggerGen();
 
 
 // defining our IdentityCore Service

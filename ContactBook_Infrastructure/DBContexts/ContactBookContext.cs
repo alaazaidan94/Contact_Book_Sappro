@@ -16,6 +16,6 @@ namespace ContactBook_Infrastructure.DBContexts
         }
         public DbSet<Company> Companies { get; set; }
         public DbSet<Contact> Contacts { get; set; }
-        public DbSet<Activity> Activities { get; set; }
+        public DbSet<Log> Logs { get; set; }
     }
 }
