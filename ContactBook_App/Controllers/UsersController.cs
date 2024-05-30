@@ -150,14 +150,5 @@ namespace ContactBook_App.Controllers
             }));
         }
 
-        //[HttpPost("sendEmail")]
-        //public async Task<IActionResult> SendEmail(SendEmailDTO sendEmailDTO)
-        //{
-
-        //   await _mailService.SendEmail(sendEmailDTO.ToEmail,sendEmailDTO.Subject,sendEmailDTO.Body);
-
-        //    return Ok();
-
-        //}
     }
 }

@@ -22,4 +22,8 @@
     <ProjectReference Include="..\ContactBook_Services\ContactBook_Services.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\" />
+  </ItemGroup>
+
 </Project>

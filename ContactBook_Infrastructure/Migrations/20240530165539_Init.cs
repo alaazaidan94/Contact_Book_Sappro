@@ -53,8 +53,8 @@ namespace ContactBook_Infrastructure.Migrations
                     LogId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     ContactName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    CreatedAt = table.Column<DateOnly>(type: "date", nullable: false),
-                    Action = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Action = table.Column<int>(type: "int", nullable: false),
                     ActionBy = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
@@ -139,7 +139,7 @@ namespace ContactBook_Infrastructure.Migrations
                     ImageUrl = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ContactState = table.Column<int>(type: "int", nullable: false),
                     isFavorite = table.Column<bool>(type: "bit", nullable: false),
-                    isDelete = table.Column<bool>(type: "bit", nullable: false),
+                    isDeleted = table.Column<bool>(type: "bit", nullable: false),
                     CompanyId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>

@@ -1,4 +1,4 @@
-using ContactBook_Domain.Models;
+﻿using ContactBook_Domain.Models;
 using ContactBook_Infrastructure.DBContexts;
 using ContactBook_Infrastructure.InitialData;
 using ContactBook_Services;
@@ -29,6 +29,8 @@ builder.Services.AddScoped<ContextSeedService>();
 builder.Services.AddScoped<CompanyService>();
 
 builder.Services.AddScoped<UserService>();
+
+builder.Services.AddScoped<ContactService>();
 
 builder.Services.AddScoped<LogService>();
 
@@ -99,6 +101,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseStaticFiles();
 
 app.UseHttpsRedirection();
 

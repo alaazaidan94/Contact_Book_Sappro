@@ -11,7 +11,7 @@ namespace ContactBook_Services.DTOs.Users
         [MaxLength(100)]
         public required string LastName { get; set; }
 
-        [MaxLength(100)]
+        [MaxLength(20)]
         public required string PhoneNumber { get; set; }
 
         public UserStatus Status { get; set; }

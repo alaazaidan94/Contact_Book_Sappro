@@ -1,18 +1,24 @@
 ﻿
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ContactBook_Domain.Models;
 
 public class User : IdentityUser
 {
+    [Required]
     [MaxLength(100)]
     public required string FirstName { get; set; }
 
+    [Required]
     [MaxLength(100)]
     public required string LastName { get; set; }
 
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public UserStatus Status { get; set; } = UserStatus.Pending;
+
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public Roles Role { get; set; } = Roles.User;
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
@@ -25,17 +31,14 @@ public class User : IdentityUser
 
 public enum UserStatus
 {
-    Pending,
-    Active,
-    Locked
+    Pending = 1,
+    Active = 2,
+    Locked = 3
 }
 
 public enum Roles
 {
-    [Display(Name = "User")]
-    User,
-
-    [Display(Name = "Admin")]
-    Admin,
+    User = 1,
+    Admin = 2,
 }
 

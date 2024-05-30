@@ -128,7 +128,7 @@ namespace ContactBook_Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<bool>("isDelete")
+                    b.Property<bool>("isDeleted")
                         .HasColumnType("bit");
 
                     b.Property<bool>("isFavorite")
@@ -149,9 +149,8 @@ namespace ContactBook_Infrastructure.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("LogId"));
 
-                    b.Property<string>("Action")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int>("Action")
+                        .HasColumnType("int");
 
                     b.Property<string>("ActionBy")
                         .IsRequired()
@@ -161,8 +160,8 @@ namespace ContactBook_Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<DateOnly>("CreatedAt")
-                        .HasColumnType("date");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("LogId");
 

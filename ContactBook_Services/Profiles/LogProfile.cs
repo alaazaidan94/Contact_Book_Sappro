@@ -1,6 +1,6 @@
 ﻿using AutoMapper;
+using ContactBook_Domain.Models;
 using ContactBook_Services.DTOs.Logs;
-using System.Diagnostics;
 
 namespace ContactBook_Services.Profiles
 {
@@ -8,7 +8,7 @@ namespace ContactBook_Services.Profiles
     {
         public LogProfile()
         {
-            CreateMap<LogModel,Activity>();
+            CreateMap<LogModel,Log>();
         }
     }
 }
