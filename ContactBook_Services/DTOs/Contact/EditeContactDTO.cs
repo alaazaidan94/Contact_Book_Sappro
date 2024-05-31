@@ -1,12 +1,12 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using ContactBook_Domain.Models;
+using Microsoft.AspNetCore.Http;
+using System.ComponentModel.DataAnnotations;
 using System.Text.Json.Serialization;
 
-namespace ContactBook_Domain.Models
+namespace ContactBook_Services.DTOs.Contact
 {
-    public class Contact
+    public class EditeContactDTO
     {
-        public int ContactId { get; set; }
-
         [Required]
         [MaxLength(100)]
         public required string FirstName { get; set; }
@@ -16,10 +16,10 @@ namespace ContactBook_Domain.Models
         public required string LastName { get; set; }
 
         [Required]
-        [EmailAddress]
+        [EmailAddress(ErrorMessage = "Invalid email address format")]
         public required string EmailOne { get; set; }
 
-        [EmailAddress]
+        [EmailAddress(ErrorMessage = "Invalid email address format")]
         public string? EmailTwo { get; set; }
 
         public string? PhoneNumber { get; set; }
@@ -28,20 +28,11 @@ namespace ContactBook_Domain.Models
         [Required]
         public required string AddressOne { get; set; }
         public string? AddressTwo { get; set; }
-        public string? ImageUrl { get; set; }
 
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public ContactState ContactState { get; set; } = ContactState.Active;
         public bool isFavorite { get; set; } = false;
-        public bool isDeleted { get; set; } = false;
-        public int CompanyId { get; set; }
-        public Company Company { get; set; }
 
-    }
-
-    public enum ContactState
-    {
-        Active = 1,
-        Inactive = 2
+        public IFormFile? UploadImage { get; set; }
     }
 }

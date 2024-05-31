@@ -28,6 +28,6 @@ namespace ContactBook_Services.DTOs.Contact
         [Required]
         public required string AddressOne { get; set; }
         public string? AddressTwo { get; set; }
-        public required IFormFile UploadImage { get; set; }
+        public IFormFile? UploadImage { get; set; }
     }
 }

@@ -21,22 +21,22 @@ namespace ContactBook_Services
         }
         public async Task<bool> SendEmail(string toEmail, string subject, string body)
         {
-            string FromEmail = _configuration["Email:From"];
-            string Appkey = _configuration["Email:Appkey"];
-
+            // Create a new email message
             var message = new MailMessage()
             {
-                From = new MailAddress("tawasul.syria@gmail.com"),
+                From = new MailAddress("test@gmail.com"),
                 Subject = subject,
                 IsBodyHtml = true,
                 Body = body,
             };
 
+            // Add recipients
             foreach (var i in toEmail.Split(";"))
             {
                 message.To.Add(new MailAddress(i));
             }
 
+            // Send the email using Google SMTP
             if (!await GoogleSMTP(message))
                 return false;
 
@@ -45,20 +45,22 @@ namespace ContactBook_Services
         }
         public async Task<bool> SendContactEmail(SendEmailDTO sendEmailDTO)
         {
-
-            var message = new MailMessage()
+            // Create a new email message
+            var message = new MailMessage
             {
-                From = new MailAddress("tawasul.syria@gmail.com"),
+                From = new MailAddress("test@gmail.com"),
                 Subject = sendEmailDTO.Subject,
                 IsBodyHtml = true,
-                Body = sendEmailDTO.Body,
+                Body = sendEmailDTO.Body
             };
 
+            // Add recipients
             foreach (var to in sendEmailDTO.To.Split(";"))
             {
                 message.To.Add(new MailAddress(to));
             }
 
+            // Add CC recipients if provided
             if (sendEmailDTO.CC != null)
             {
                 foreach (var cc in sendEmailDTO.CC.Split(";"))
@@ -67,6 +69,7 @@ namespace ContactBook_Services
                 }
             }
 
+            // Add BCC recipients if provided
             if (sendEmailDTO.BCC != null)
             {
                 foreach (var bcc in sendEmailDTO.BCC.Split(";"))
@@ -75,36 +78,44 @@ namespace ContactBook_Services
                 }
             }
 
+            // Send the email using Google SMTP
             if (!await GoogleSMTP(message))
                 return false;
 
-            
+            // Return the result of the email send operation
             return true;
         }
         private async Task<bool> GoogleSMTP(MailMessage message)
         {
+            // Retrieve email configuration settings
+            string emailMain = _configuration["Email:EmailMain"]!;
+            string appKey = _configuration["Email:Appkey"]!;
 
-            string EmailMain = _configuration["Email:EmailMain"];
-            string Appkey = _configuration["Email:Appkey"];
-
+            // Configure the SMTP client
             var smtp = new SmtpClient("smtp.gmail.com")
             {
                 Port = 587,
-                Credentials = new NetworkCredential(EmailMain, Appkey),
+                Credentials = new NetworkCredential(emailMain, appKey),
                 EnableSsl = true,
             };
 
             try
             {
+                // Send the email asynchronously
                 await smtp.SendMailAsync(message);
+
                 _logger.LogInformation("Email sent successfully to {ToEmail}", message.To);
+               
                 return true;
             }
             catch (Exception ex)
             {
+                // Log any errors that occur during sending
                 _logger.LogError(ex, "Error sending email to {ToEmail}", message.To);
+               
                 return false;
             }
         }
+
     }
 }

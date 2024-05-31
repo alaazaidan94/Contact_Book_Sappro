@@ -5,7 +5,6 @@ using ContactBook_Services.DTOs.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using System.Text.Json;
 
 namespace ContactBook_App.Controllers
@@ -72,22 +71,17 @@ namespace ContactBook_App.Controllers
         public async Task<ActionResult<ViewUserDTO>> InviteUser(InviteUserDTO inviteUserDTO)
         {
             if (inviteUserDTO == null)
-                return BadRequest("Invaild model");
+                return BadRequest("Invalid Invite data provided");
 
-            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (currentUserId == null)
-                return BadRequest("Faild to get current User");
-
-            if (!await _userService.InviteUser(currentUserId, inviteUserDTO))
-                return BadRequest("Invalid Invite User");
+            if (!await _userService.InviteUser(inviteUserDTO))
+                return BadRequest("Failed to send invitation. Please check the provided information and try again.");
 
             try
             {
                 if (await _authService.SendConfirmAndSetPasswordAsync(inviteUserDTO.Email))
                 {
                     return Ok(new JsonResult(new { 
-                        title = "Invite Success", 
+                        title = "Invitation sent successfully.", 
                         message = "The invitation has been sent successfully, please confrim your email address and set password" }));
                 }
 
@@ -106,15 +100,15 @@ namespace ContactBook_App.Controllers
                 return BadRequest("Invalid UserId");
 
             if (editUserDTO == null)
-                return BadRequest("Invalid model");
+                return BadRequest("Invalid EditUser data provided");
 
             if (!await _userService.UpdateAsync(userId, editUserDTO))
-                return BadRequest("Update failed");
+                return BadRequest("Failed to update data. Please verify the provided information and try again.");
 
             return Ok(new JsonResult(new
             {
-                title = "User modified",
-                message = "User has been modified successfully"
+                title = "User updated successfully.",
+                message = "User has been updated successfully"
             }));
         }
 
@@ -125,12 +119,12 @@ namespace ContactBook_App.Controllers
                 return BadRequest("Invalid userId");
 
             if (! await _userService.SoftDeleteAsync(userId))
-                return BadRequest("Invalid Deleted");
+                return BadRequest("Failed to soft delete user");
 
             return Ok(new JsonResult(new
             {
                 title = "User deleted",
-                message = "User has been deleted successfully"
+                message = "User has been soft deleted successfully"
             }));
         }
 
@@ -141,7 +135,7 @@ namespace ContactBook_App.Controllers
                 return BadRequest("Invalid userId");
 
             if (!await _userService.DeleteAsync(userId))
-                return BadRequest("Invalid Deleted");
+                return BadRequest("Failed to delete user");
 
             return Ok(new JsonResult(new
             {

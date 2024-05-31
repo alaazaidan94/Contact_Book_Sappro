@@ -35,11 +35,7 @@ namespace ContactBook_App.Controllers
         [HttpPut]
         public async Task<ActionResult<Company>> EditCompany(EditCompanyDTO editCompanyDTO)
         {
-            var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (currentUserId == null)
-                return BadRequest();
-
-            if (!await _companyService.UpdateAsync(currentUserId, editCompanyDTO))
+            if (!await _companyService.UpdateAsync(editCompanyDTO))
                 return BadRequest("The company has not been modified");
 
             return Ok(new JsonResult(new

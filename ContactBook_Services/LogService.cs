@@ -3,6 +3,7 @@ using ContactBook_Domain.Models;
 using ContactBook_Infrastructure.DBContexts;
 using ContactBook_Services.DTOs.Logs;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace ContactBook_Services
 {
@@ -10,29 +11,37 @@ namespace ContactBook_Services
     {
         private readonly ContactBookContext _context;
         private readonly IMapper _mapper;
+        private readonly ILogger<Log> _logger;
 
         public LogService(
             ContactBookContext context,
-            IMapper mapper)
+            IMapper mapper,
+            ILogger<Log> logger)
         {
             _context = context;
             _mapper = mapper;
+            _logger = logger;
         }
         public async Task<bool> AddLog(LogModel logModel)
         {
             if (logModel == null)
                 return false;
-        
-            var log = _mapper.Map<LogModel,Log>(logModel);
 
-            var state = await _context.Logs.AddAsync(log);
+            var log = _mapper.Map<LogModel, Log>(logModel);
 
-            if (state.State is EntityState.Added)
+            try
             {
+                await _context.Logs.AddAsync(log);
                 await _context.SaveChangesAsync();
                 return true;
+
             }
-            return false;
+            catch (DbUpdateException ex)
+            {
+                _logger.LogError(ex, "Error occurred while adding a Log to the database.");
+
+                return false;
+            }
         }
 
         public async Task<List<Log>> GetAllAsync()

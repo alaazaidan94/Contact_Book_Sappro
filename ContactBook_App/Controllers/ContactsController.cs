@@ -1,8 +1,6 @@
 ﻿using ContactBook_Domain.Models;
 using ContactBook_Services;
 using ContactBook_Services.DTOs.Contact;
-using ContactBook_Services.DTOs.Logs;
-using ContactBook_Services.DTOs.Users;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
@@ -65,11 +63,23 @@ namespace ContactBook_App.Controllers
 
         }
 
+        [HttpPut("{contactId}")]
+        public async Task<IActionResult> UpdateContact(int contactId, [FromForm]EditeContactDTO editeContactDTO)
+        {
+            var (state, message) = await _contactService.UpdateAsync(contactId, editeContactDTO);
+
+            if (!state)
+                return BadRequest(message);
+
+            return Ok(message);
+
+        }
+
         [HttpDelete("{contactId}")]
         public async Task<IActionResult> DeleteContact(int contactId)
         {
             if (!await _contactService.DeleteAsync(contactId))
-                return BadRequest();
+                return BadRequest("Failed to delete contact");
 
             return Ok(new JsonResult(new
             {
@@ -86,7 +96,7 @@ namespace ContactBook_App.Controllers
                 return BadRequest("Invalid contact Id");
 
             if (!await _contactService.SoftDeleteAsync(contactId))
-                return BadRequest("Invalid Deleted");
+                return BadRequest("Failed to soft delete contact");
 
             return Ok(new JsonResult(new
             {
@@ -99,11 +109,11 @@ namespace ContactBook_App.Controllers
         public async Task<IActionResult> SendEmail(SendEmailDTO sendEmailDTO)
         {
             if (!await _contactService.SendEmail(sendEmailDTO))
-                return BadRequest("Send email failde");
+                return BadRequest("Email sending failed");
 
             return Ok(new JsonResult(new
             {
-                title = "Send email success",
+                title = "Email sending success",
                 message = "Your email has been send successfully"
             }));
 

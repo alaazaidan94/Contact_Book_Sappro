@@ -9,6 +9,7 @@ namespace ContactBook_Services.Profiles
         public ContactProfile()
         {
             CreateMap<AddContatctDTO,Contact>();
+            CreateMap<EditeContactDTO,Contact>();
         }
     }
 }

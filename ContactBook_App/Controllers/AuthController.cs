@@ -21,7 +21,7 @@ namespace ContactBook_App.Controllers
         public async Task<ActionResult<UserDTO>> Login(LoginDTO loginDTO)
         {
             if (loginDTO == null)
-                return BadRequest();
+                return BadRequest("Invalid login data provided.");
 
             if (!await _authService.CheckAccount(loginDTO))
                 return Unauthorized("Invalid username or password");
@@ -40,7 +40,7 @@ namespace ContactBook_App.Controllers
                 return BadRequest($"An existing account is using {registerDTO.Email}, email addres. Please try with another email address");
 
             if (!await _authService.CreateUserAndCompany(registerDTO))
-                return BadRequest("Registering Faild");
+                return BadRequest("Failed to create user account.");
 
             try
             {

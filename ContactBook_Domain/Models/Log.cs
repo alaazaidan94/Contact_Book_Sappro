@@ -28,6 +28,7 @@ namespace ContactBook_Domain.Models
         Add = 2,
         Update = 3,
         Delete = 4,
-        EmailSent = 5
+        SoftDelete = 5,
+        EmailSent = 6
     }
 }

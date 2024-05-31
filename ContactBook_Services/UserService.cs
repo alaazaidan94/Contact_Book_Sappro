@@ -2,9 +2,11 @@
 using ContactBook_Domain.Models;
 using ContactBook_Infrastructure.DBContexts;
 using ContactBook_Services.DTOs.Users;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using System.Security.Claims;
 
 namespace ContactBook_Services
 {
@@ -13,18 +15,21 @@ namespace ContactBook_Services
         private readonly ContactBookContext _context;
         private readonly UserManager<User> _userManager;
         private readonly IConfiguration _configuration;
+        private readonly IHttpContextAccessor _httpContextAccessor;
         private readonly IMapper _mapper;
 
         public UserService(
             ContactBookContext context,
             UserManager<User> userManager,
             IConfiguration configuration,
+            IHttpContextAccessor httpContextAccessor,
             IMapper mapper
             )
         {
             _context = context;
             _userManager = userManager;
             _configuration = configuration;
+            _httpContextAccessor = httpContextAccessor;
             _mapper = mapper;
         }
 
@@ -33,6 +38,7 @@ namespace ContactBook_Services
         {
             var users = await _userManager.Users.ToListAsync();
 
+            // Map the list of users to a list of ViewUserDTO objects
             var viewUserDTO = _mapper.Map<List<ViewUserDTO>>(users);
 
             return viewUserDTO;
@@ -54,6 +60,7 @@ namespace ContactBook_Services
                 .Take(pageSize)
                 .ToListAsync();
 
+            // Map the list of users to a list of ViewUserDTO objects
             var viewUsersDTO = _mapper.Map<List<ViewUserDTO>>(users);
 
             return (viewUsersDTO, paginationMetaDate);
@@ -62,13 +69,14 @@ namespace ContactBook_Services
         {
             var user = await _context.Users.SingleOrDefaultAsync(u => u.Id == id);
 
+            // Map the object of user to a object of ViewUserDTO
             var viewUserDTO = _mapper.Map<ViewUserDTO>(user);
 
             return viewUserDTO;
         }
-        public async Task<bool> InviteUser(string currentUserId, InviteUserDTO inviteUserDTO)
+        public async Task<bool> InviteUser(InviteUserDTO inviteUserDTO)
         {
-            var currentUser = await _userManager.Users.SingleOrDefaultAsync(u => u.Id == currentUserId);
+            var currentUser = await GetCurrentUser();
             
             if (currentUser == null)
                 return false;
@@ -86,10 +94,7 @@ namespace ContactBook_Services
 
             var result = await _userManager.CreateAsync(user);
 
-            if (!result.Succeeded)
-                return false;
-
-            return true;
+            return result.Succeeded;
         }
         public async Task<bool> UpdateAsync(string userId, EditUserDTO editUserDTO)
         {
@@ -102,10 +107,7 @@ namespace ContactBook_Services
 
             var state = await _userManager.UpdateAsync(user);
 
-            if (!state.Succeeded)
-                return false;
-
-            return true;
+            return state.Succeeded;
         }
         public async Task<bool> SoftDeleteAsync(string id)
         {
@@ -118,10 +120,7 @@ namespace ContactBook_Services
 
             var state = await _userManager.UpdateAsync(user);
 
-            if (!state.Succeeded)
-                return false;
-
-            return true;
+            return state.Succeeded;
         }
         public async Task<bool> DeleteAsync(string id)
         {
@@ -132,10 +131,16 @@ namespace ContactBook_Services
 
             var state = await _userManager.DeleteAsync(user);
 
-            if (!state.Succeeded)
-                return false;
+            return state.Succeeded;
+        }
 
-            return true;
+        private async Task<User> GetCurrentUser()
+        {
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
+
+            return user;
         }
     }
 }

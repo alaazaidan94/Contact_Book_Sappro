@@ -29,11 +29,36 @@ namespace ContactBook_Infrastructure.InitialData
                 await _context.Database.MigrateAsync();
             }
 
-            if (!_roleManager.Roles.Any())
+            if (!_context.Companies.Any())
             {
-                await _roleManager.CreateAsync(new IdentityRole { Name = "User" });
-                await _roleManager.CreateAsync(new IdentityRole { Name = "Admin" });
-                await _roleManager.CreateAsync(new IdentityRole { Name = "Owner" });
+                var Company = new Company()
+                {
+                    CompanyName = "TestCompany",
+                    VatNumber = "112540",
+                    City = "Azaz",
+                    Country = "Syria",
+                    State = "state",
+                    StreetOne = "AAA",
+                    StreetTwo = "BBB",
+                    Zip = "12345"
+                };
+                await _context.Companies.AddAsync(Company);
+                await _context.SaveChangesAsync();
+            }
+
+            if (!_userManager.Users.Any())
+            {
+                var Admin = new User()
+                {
+                    FirstName = "Alaa",
+                    LastName = "Zaidan",
+                    Email = "alaa.zydan94@gmail.com",
+                    UserName = "alaa.zydan94@gmail.com",
+                    EmailConfirmed = true,
+                    Role = Roles.Admin,
+                    CompanyId = 1
+                };
+                await _userManager.CreateAsync(Admin, "112233");
             }
         }
     }
