@@ -36,7 +36,10 @@ namespace ContactBook_Services
 
         public async Task<List<ViewUserDTO>> GetAllAsync()
         {
-            var users = await _userManager.Users.ToListAsync();
+            var user = await GetCurrentUser();
+            var companyId = user.CompanyId;
+
+            var users = await _userManager.Users.Where(u => u.CompanyId == companyId).ToListAsync();
 
             // Map the list of users to a list of ViewUserDTO objects
             var viewUserDTO = _mapper.Map<List<ViewUserDTO>>(users);
@@ -45,9 +48,12 @@ namespace ContactBook_Services
         }
         public async Task<(List<ViewUserDTO>, PaginationMetaData)> GetUsersAsyncPagination(int pageNumber)
         {
+            var user = await GetCurrentUser();
+            var companyId = user.CompanyId;
+
             int pageSize = Convert.ToInt32(_configuration.GetSection("maxPageSize").Value);
 
-            var query = _context.Users.AsQueryable();
+            var query = _context.Users.Where(u => u.CompanyId == companyId).AsQueryable();
 
             // Get total count of users
             var totalCount = await query.CountAsync();
@@ -133,7 +139,6 @@ namespace ContactBook_Services
 
             return state.Succeeded;
         }
-
         private async Task<User> GetCurrentUser()
         {
             var userId = _httpContextAccessor.HttpContext?.User?.FindFirstValue(ClaimTypes.NameIdentifier);

@@ -20,6 +20,8 @@ namespace ContactBook_Domain.Models
         [MaxLength(100)]
         public required string ActionBy { get; set; }
 
+        public int CompanyId { get; set; }
+
     }
 
     public enum LogAction

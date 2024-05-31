@@ -35,7 +35,7 @@ namespace ContactBook_Domain.Models
         public bool isFavorite { get; set; } = false;
         public bool isDeleted { get; set; } = false;
         public int CompanyId { get; set; }
-        public Company Company { get; set; }
+        public Company? Company { get; set; }
 
     }
 

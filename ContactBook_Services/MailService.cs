@@ -85,6 +85,36 @@ namespace ContactBook_Services
             // Return the result of the email send operation
             return true;
         }
+        public async Task<bool> SendExportContactEmail(string toEmail, string exportPath)
+        {
+            // Create a new email message
+            var message = new MailMessage()
+            {
+                From = new MailAddress("test@gmail.com"),
+                Subject = "Contacts_Reports",
+                IsBodyHtml = true,
+                Body = "",
+            };
+
+            // Add recipients
+            foreach (var i in toEmail.Split(";"))
+            {
+                message.To.Add(new MailAddress(i));
+            }
+
+            if (!string.IsNullOrEmpty(exportPath))
+            {
+                var attachment = new Attachment(exportPath);
+                message.Attachments.Add(attachment);
+            }
+
+            // Send the email using Google SMTP
+            if (!await GoogleSMTP(message))
+                return false;
+
+            return true;
+
+        }
         private async Task<bool> GoogleSMTP(MailMessage message)
         {
             // Retrieve email configuration settings

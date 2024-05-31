@@ -23,9 +23,10 @@ namespace ContactBook_App.Controllers
             if (loginDTO == null)
                 return BadRequest("Invalid login data provided.");
 
-            if (!await _authService.CheckAccount(loginDTO))
-                return Unauthorized("Invalid username or password");
+            var (result, message) = await _authService.CheckAccount(loginDTO);
 
+            if (!result)
+                return Unauthorized(message);
 
             if (!await _authService.ChechConfirmEmail(loginDTO.Email))
                 return Unauthorized("Please confrim your email address");

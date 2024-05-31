@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using ClosedXML.Excel;
 using ContactBook_Domain.Models;
 using ContactBook_Infrastructure.DBContexts;
 using ContactBook_Services.DTOs.Contact;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using System.Data;
 using System.Security.Claims;
 
 namespace ContactBook_Services
@@ -45,13 +47,19 @@ namespace ContactBook_Services
 
         public async Task<List<Contact>> GetAllAsync()
         {
-            return await _context.Contacts.ToListAsync();
+            var user = await GetCurrentUser();
+            var companyId = user.CompanyId;
+
+            return await _context.Contacts.Where(c => c.CompanyId == companyId).ToListAsync();
         }
         public async Task<(List<Contact>, PaginationMetaData)> GetContactsAsyncPagination(int pageNumber)
         {
+            var user = await GetCurrentUser();
+            var companyId = user.CompanyId;
+
             int pageSize = Convert.ToInt32(_configuration.GetSection("maxPageSize").Value);
 
-            var query = _context.Contacts.AsQueryable();
+            var query = _context.Contacts.Where(c => c.CompanyId == companyId).AsQueryable();
 
             // Get total count of contacts
             var totalCount = await query.CountAsync();
@@ -69,7 +77,20 @@ namespace ContactBook_Services
         }
         public async Task<Contact> GetByIdAsync(int id)
         {
-            return await _context.Contacts.FirstOrDefaultAsync(p => p.ContactId == id);
+            var user = await GetCurrentUser();
+            var contact = await _context.Contacts.FirstOrDefaultAsync(p => p.ContactId == id);
+
+            var log = new LogModel
+            {
+                ContactName = $"{contact!.FirstName} {contact.LastName}",
+                Action = LogAction.Access,
+                ActionBy = $"{user.FirstName} {user.LastName}",
+                CompanyId = user.CompanyId
+            };
+
+            await _logService.AddLog(log);
+
+            return contact!;
         }
         public async Task<(bool success, string message)> AddAsync(AddContatctDTO addContactDTO)
         {
@@ -90,7 +111,7 @@ namespace ContactBook_Services
                 (bool result, string message) = await UploadImage(addContactDTO.UploadImage);
                 if (!result)
                     return (false, message);
-             
+
                 imageUrl = message;
             }
 
@@ -115,6 +136,7 @@ namespace ContactBook_Services
                     ContactName = $"{contact.FirstName} {contact.LastName}",
                     Action = LogAction.Add,
                     ActionBy = $"{user.FirstName} {user.LastName}",
+                    CompanyId = user.CompanyId,
                 };
                 await _logService.AddLog(log);
 
@@ -147,7 +169,7 @@ namespace ContactBook_Services
             {
                 // Upload the new image
                 (bool result, string message) = await UploadImage(editContactDTO.UploadImage, imageUrl!);
-              
+
                 if (!result)
                     return (false, message);
 
@@ -175,6 +197,7 @@ namespace ContactBook_Services
                     ContactName = $"{contact.FirstName} {contact.LastName}",
                     Action = LogAction.Update,
                     ActionBy = $"{user.FirstName} {user.LastName}",
+                    CompanyId = user.CompanyId
                 };
                 await _logService.AddLog(log);
 
@@ -195,6 +218,8 @@ namespace ContactBook_Services
             if (contact == null)
                 return false;
 
+            DeleteImage(contact.ImageUrl!);
+
             _context.Contacts.Remove(contact);
 
             try
@@ -205,7 +230,8 @@ namespace ContactBook_Services
                 {
                     ContactName = $"{contact.FirstName} {contact.LastName}",
                     Action = LogAction.Delete,
-                    ActionBy = $"{user.FirstName} {user.LastName}"
+                    ActionBy = $"{user.FirstName} {user.LastName}",
+                    CompanyId = user.CompanyId
                 };
 
                 await _logService.AddLog(log);
@@ -232,13 +258,14 @@ namespace ContactBook_Services
 
             try
             {
-               await _context.SaveChangesAsync();
+                await _context.SaveChangesAsync();
 
                 var log = new LogModel
                 {
                     ContactName = $"{contact.FirstName} {contact.LastName}",
                     Action = LogAction.SoftDelete,
-                    ActionBy = $"{user.FirstName} {user.LastName}"
+                    ActionBy = $"{user.FirstName} {user.LastName}",
+                    CompanyId = user.CompanyId
                 };
 
                 await _logService.AddLog(log);
@@ -268,6 +295,7 @@ namespace ContactBook_Services
                 ContactName = contact.FirstName + " " + contact.LastName,
                 Action = LogAction.EmailSent,
                 ActionBy = user.FirstName + " " + user.LastName,
+                CompanyId = user.CompanyId
             };
 
             await _logService.AddLog(log);
@@ -280,13 +308,8 @@ namespace ContactBook_Services
             // Delete the old image if the current image URL is provided
             if (!string.IsNullOrEmpty(imageUrl))
             {
-                string filePath = Path.GetFileName(imageUrl);
-
                 // Check if the file exists and delete it if it does
-                if (File.Exists(filePath))
-                {
-                    File.Delete(filePath);
-                }
+                DeleteImage(imageUrl);
             }
 
             // Validate the extension
@@ -325,8 +348,95 @@ namespace ContactBook_Services
 
             return (true, imagePath);
         }
+        public async Task<(bool success, string message)> DownloadImage(int contactId)
+        {
+            // Fetch the contact from the database by ID
+            var contact = await _context.Contacts.FindAsync(contactId);
 
+            if (contact == null)
+                return (false, "Contact not found");
 
+            // Get the host URL from the configuration
+            var hostUrl = _configuration["appUrl"];
+
+            // Extract the image name from the contact's image URL
+            var imageName = Path.GetFileName(contact.ImageUrl);
+
+            // Check if the image file exists locally
+            if (File.Exists(contact.ImageUrl))
+            {
+                var imageURL = hostUrl + "/Uploads/Contact-Image/" + imageName;
+
+                return (true, imageURL);
+            }
+
+            return (false, "Image download failed");
+        }
+        public async Task<bool> ExportContact(string email)
+        {
+            var user = await GetCurrentUser();
+            var company = await _context.Companies.FindAsync(user.CompanyId);
+            var companyId = user.CompanyId;
+
+            var Date = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
+
+            var contacts = await _context.Contacts.Where(c => c.CompanyId == companyId).ToListAsync();
+
+            var savePath = string.Empty;
+
+            DataTable dt = new DataTable();
+
+            dt.Clear();
+            dt.Columns.Add("ContactId");
+            dt.Columns.Add("FirstName");
+            dt.Columns.Add("LastName");
+            dt.Columns.Add("EmailOne");
+            dt.Columns.Add("EmailTwo");
+            dt.Columns.Add("PhoneNumber");
+            dt.Columns.Add("Mobile");
+            dt.Columns.Add("AddressOne");
+            dt.Columns.Add("AddressTwo");
+
+            foreach (var contact in contacts)
+            {
+                DataRow row = dt.NewRow();
+                row["ContactId"] = contact.ContactId;
+                row["FirstName"] = contact.FirstName;
+                row["LastName"] = contact.LastName;
+                row["EmailOne"] = contact.EmailOne;
+                row["EmailTwo"] = contact.EmailTwo;
+                row["PhoneNumber"] = contact.PhoneNumber;
+                row["Mobile"] = contact.Mobile;
+                row["AddressOne"] = contact.AddressOne;
+                row["AddressTwo"] = contact.AddressTwo;
+
+                dt.Rows.Add(row);
+            }
+
+            savePath = Path.Combine(_environment.WebRootPath, "exports", $"{company!.CompanyName}_Contacts_{Date}.xlsx");
+         
+            using (XLWorkbook ewb = new XLWorkbook())
+            {
+                ewb.Worksheets.Add(dt, "Contacts");
+
+                ewb.SaveAs(savePath);
+            }
+
+            await _mailService.SendExportContactEmail(email, savePath);
+
+            return true;
+        }
+        private void DeleteImage(string imageURL)
+        {
+            if (!string.IsNullOrEmpty(imageURL))
+            {
+                // Check if the file exists and delete it if it does
+                if (File.Exists(imageURL))
+                {
+                    File.Delete(imageURL);
+                }
+            }
+        }
         private string GetImagesPath()
         {
             return _environment.WebRootPath + "\\Uplodes\\Contact-Image";
@@ -337,11 +447,13 @@ namespace ContactBook_Services
 
             var user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
 
-            return user;
+            return user!;
         }
         private async Task<Contact> GetContactByEmail(string email)
         {
-            return await _context.Contacts.SingleOrDefaultAsync(c => c.EmailOne == email || c.EmailTwo == email);
+            var contact = await _context.Contacts.SingleOrDefaultAsync(c => c.EmailOne == email || c.EmailTwo == email);
+            return contact!;
         }
+
     }
 }

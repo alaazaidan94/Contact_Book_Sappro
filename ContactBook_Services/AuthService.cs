@@ -37,16 +37,20 @@ namespace ContactBook_Services
             _mapper = mapper;
         }
 
-        public async Task<bool> CheckAccount(LoginDTO loginDTO)
+        public async Task<(bool, string)> CheckAccount(LoginDTO loginDTO)
         {
             var user = await _userManager.FindByEmailAsync(loginDTO.Email);
-
-            if (user == null)
-                return false;
+            if (user == null || user.isDeleted == true)
+                return (false, "Your account was not found.");
 
             var result = await _signInManager.CheckPasswordSignInAsync(user, loginDTO.Password, false);
+            if (!result.Succeeded)
+                return (false, "Invalid username or password");
 
-            return result.Succeeded;
+            if (user.Status == UserStatus.Locked)
+                return (false, "Your account hass been locked, please contact admin");
+
+            return (true,"Login success");
         }
         public async Task<bool> ChechConfirmEmail(string email)
         {
@@ -73,7 +77,7 @@ namespace ContactBook_Services
                 {
                     dest.CompanyId = company.CompanyId;
                     dest.UserName = registerDTO.Email;
-                    dest.Role = Roles.Admin;
+                    dest.Role = Roles.Owner;
                 });
             });
 

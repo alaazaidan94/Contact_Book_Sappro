@@ -11,7 +11,7 @@ namespace ContactBook_App.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(Roles = "Owner,Admin")]
     public class UsersController : ControllerBase
     {
         private readonly UserManager<User> _userManager;

@@ -39,7 +39,8 @@ namespace ContactBook_Services
         }
         public async Task<Company> GetByIdAsync(int id)
         {
-            return await _context.Companies.FirstOrDefaultAsync(p => p.CompanyId == id);
+            var company = await _context.Companies.FirstOrDefaultAsync(p => p.CompanyId == id);
+            return company!;
 
         }
         public async Task<bool> AddAsync(Company entity)
@@ -109,7 +110,7 @@ namespace ContactBook_Services
 
             var user = await _context.Users.SingleOrDefaultAsync(u => u.Id == userId);
 
-            return user;
+            return user!;
         }
     }
 }

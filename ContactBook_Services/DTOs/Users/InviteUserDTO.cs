@@ -1,6 +1,7 @@
 ﻿using ContactBook_Domain.Models;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json.Serialization;
 
 namespace ContactBook_Services.DTOs.Users
 {
@@ -27,6 +28,7 @@ namespace ContactBook_Services.DTOs.Users
 
         [Required]
         [DefaultValue(Roles.User)]
+        [JsonConverter(typeof(JsonStringEnumConverter))]
         public required Roles Role { get; set; } = Roles.User;
     }
 }

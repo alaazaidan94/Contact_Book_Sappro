@@ -4,13 +4,12 @@ using ContactBook_Services;
 using ContactBook_Services.DTOs.Company;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 
 namespace ContactBook_App.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Owner")]
     public class CompaniesController : ControllerBase
     {
         private readonly CompanyService _companyService;

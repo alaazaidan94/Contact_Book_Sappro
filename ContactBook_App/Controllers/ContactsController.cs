@@ -119,5 +119,27 @@ namespace ContactBook_App.Controllers
 
         }
 
+        [HttpGet("{contactId}/download")]
+        public async Task<IActionResult> DownloadImage(int contactId)
+        {
+            (bool state, string message) = await _contactService.DownloadImage(contactId);
+
+            if (!state)
+                return BadRequest(message);
+
+            return Ok(message);
+        }
+
+        [HttpPost("export/{email}")]
+        public async Task<IActionResult> ExportContacts(string email)
+        {
+            var state = await _contactService.ExportContact(email);
+
+            if (!state)
+                return BadRequest();
+
+            return Ok();
+        }
+
     }
 }

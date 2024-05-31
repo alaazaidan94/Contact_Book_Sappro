@@ -1,5 +1,4 @@
-﻿
-using ContactBook_Domain.Models;
+﻿using ContactBook_Domain.Models;
 using ContactBook_Infrastructure.DBContexts;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -55,7 +54,8 @@ namespace ContactBook_Infrastructure.InitialData
                     Email = "alaa.zydan94@gmail.com",
                     UserName = "alaa.zydan94@gmail.com",
                     EmailConfirmed = true,
-                    Role = Roles.Admin,
+                    Status = UserStatus.Active,
+                    Role = Roles.Owner,
                     CompanyId = 1
                 };
                 await _userManager.CreateAsync(Admin, "112233");

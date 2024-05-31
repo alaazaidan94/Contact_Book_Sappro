@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ContactBook_Infrastructure.Migrations
 {
     [DbContext(typeof(ContactBookContext))]
-    [Migration("20240530201607_Init")]
-    partial class Init
+    [Migration("20240531062630_Init_2")]
+    partial class Init_2
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -150,6 +150,9 @@ namespace ContactBook_Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("CompanyId")
+                        .HasColumnType("int");
 
                     b.Property<string>("ContactName")
                         .IsRequired()

@@ -16,5 +16,7 @@ namespace ContactBook_Services.DTOs.Users
 
         [JsonConverter(typeof(JsonStringEnumConverter))]
         public Roles Role { get; set; }
+
+        public bool isDeleted { get; set; }
     }
 }
