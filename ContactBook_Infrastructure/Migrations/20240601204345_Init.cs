@@ -55,7 +55,8 @@ namespace ContactBook_Infrastructure.Migrations
                     ContactName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Action = table.Column<int>(type: "int", nullable: false),
-                    ActionBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false)
+                    ActionBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    CompanyId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {

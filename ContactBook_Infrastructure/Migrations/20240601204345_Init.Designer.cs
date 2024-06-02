@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ContactBook_Infrastructure.Migrations
 {
     [DbContext(typeof(ContactBookContext))]
-    [Migration("20240531062630_Init_2")]
-    partial class Init_2
+    [Migration("20240601204345_Init")]
+    partial class Init
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

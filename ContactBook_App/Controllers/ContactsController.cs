@@ -1,5 +1,6 @@
 ﻿using ContactBook_Domain.Models;
 using ContactBook_Services;
+using ContactBook_Services.DTOs.Account;
 using ContactBook_Services.DTOs.Contact;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -130,10 +131,10 @@ namespace ContactBook_App.Controllers
             return Ok(message);
         }
 
-        [HttpPost("export/{email}")]
-        public async Task<IActionResult> ExportContacts(string email)
+        [HttpPost("export-via-email")]
+        public async Task<IActionResult> ExportContacts(EmailDTO emailDTO)
         {
-            var state = await _contactService.ExportContact(email);
+            var state = await _contactService.ExportContact(emailDTO.Email);
 
             if (!state)
                 return BadRequest();
