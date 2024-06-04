@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Azure;
 using ClosedXML.Excel;
 using ContactBook_Domain.Models;
 using ContactBook_Infrastructure.DBContexts;
@@ -6,6 +7,8 @@ using ContactBook_Services.DTOs.Contact;
 using ContactBook_Services.DTOs.Logs;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.JsonPatch;
+using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -94,7 +97,7 @@ namespace ContactBook_Services
         }
         public async Task<(bool success, string message)> AddAsync(AddContatctDTO addContactDTO)
         {
-            // Retrieve the current user
+            // Get current user
             var user = await GetCurrentUser();
             if (user == null)
             {
@@ -210,6 +213,21 @@ namespace ContactBook_Services
                 return (false, "Failed to update contact");
             }
         }
+
+        public async Task<(bool success, string message)> EditIsFavorate(int contactId)
+        {
+            var contact = await _context.Contacts.FindAsync(contactId);
+            if (contact == null)
+                return (false, "Contact not found.");
+
+            contact.isFavorite = !contact.isFavorite;
+
+            _context.Contacts.Update(contact);
+
+            _context.SaveChanges();
+
+            return (true,"Success");
+        }
         public async Task<bool> DeleteAsync(int id)
         {
             var user = await GetCurrentUser();
@@ -309,7 +327,7 @@ namespace ContactBook_Services
             if (!string.IsNullOrEmpty(imageUrl))
             {
                 // Check if the file exists and delete it if it does
-                DeleteImage(imageUrl);
+                DeleteImage(_environment.WebRootPath + "\\" + imageUrl);
             }
 
             // Validate the extension
@@ -330,23 +348,34 @@ namespace ContactBook_Services
             // Create a unique name for the new file using a GUID
             string imageName = Guid.NewGuid().ToString() + extension;
 
-            string path = GetImagesPath();
+            string imagePath = _configuration["ImagePath"]!;
+
+            string rootpath = _environment.WebRootPath;
+
+            string fullPath = rootpath +"\\" + imagePath;
 
             // Ensure the directory exists and create it if it doesn't
-            if (!Directory.Exists(path))
+            if (!Directory.Exists(fullPath))
             {
-                Directory.CreateDirectory(path);
+                Directory.CreateDirectory(fullPath);
             }
 
-            string imagePath = Path.Combine(path, imageName);
+            string imageFullPath = Path.Combine(fullPath, imageName);
 
             // Save the image to the specified path using FileStream
-            using (FileStream stream = new FileStream(imagePath, FileMode.Create))
+            try
             {
-                await image.CopyToAsync(stream);
+                using (FileStream stream = new FileStream(imageFullPath, FileMode.Create))
+                {
+                    await image.CopyToAsync(stream);
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, "An error occurred while create image. "+ex.Message);
             }
 
-            return (true, imagePath);
+            return (true, imagePath +"\\"+ imageName);
         }
         public async Task<(bool success, string message)> DownloadImage(int contactId)
         {
@@ -359,30 +388,32 @@ namespace ContactBook_Services
             // Get the host URL from the configuration
             var hostUrl = _configuration["appUrl"];
 
-            // Extract the image name from the contact's image URL
-            var imageName = Path.GetFileName(contact.ImageUrl);
+            var fullPath = _environment.WebRootPath +"\\" + contact.ImageUrl;
 
             // Check if the image file exists locally
-            if (File.Exists(contact.ImageUrl))
-            {
-                var imageURL = hostUrl + "/Uploads/Contact-Image/" + imageName;
+            if (!File.Exists(fullPath))
+                return (false, "Image not found");
 
-                return (true, imageURL);
-            }
+            var imageURL = hostUrl + "/" + contact.ImageUrl!.Replace("\\", "/");
 
-            return (false, "Image download failed");
+            return (true, imageURL);
+
         }
-        public async Task<bool> ExportContact(string email)
+        public async Task<(bool success, string message)> ExportContact(ExportContactDTO exportContactDTO)
         {
             var user = await GetCurrentUser();
+            if (user == null) 
+                return (false, "Current user not found");
+
             var company = await _context.Companies.FindAsync(user.CompanyId);
-            var companyId = user.CompanyId;
 
             var Date = DateOnly.FromDateTime(DateTime.UtcNow).ToString("yyyy-MM-dd");
 
-            var contacts = await _context.Contacts.Where(c => c.CompanyId == companyId).ToListAsync();
+            var contacts = await _context.Contacts.Where(c => exportContactDTO.contactIds.Contains(c.ContactId)).ToListAsync();
+            if (contacts == null)
+                return (false, "No contacts to export");
 
-            var savePath = string.Empty;
+            var path = string.Empty;
 
             DataTable dt = new DataTable();
 
@@ -413,18 +444,26 @@ namespace ContactBook_Services
                 dt.Rows.Add(row);
             }
 
-            savePath = Path.Combine(_environment.WebRootPath, "exports", $"{company!.CompanyName}_Contacts_{Date}.xlsx");
+            path = Path.Combine(_environment.WebRootPath, "Exports", $"{company!.CompanyName}_Contacts_{Date}.xlsx");
          
-            using (XLWorkbook ewb = new XLWorkbook())
+            try
             {
-                ewb.Worksheets.Add(dt, "Contacts");
-
-                ewb.SaveAs(savePath);
+                using (XLWorkbook ewb = new XLWorkbook())
+                {
+                    ewb.Worksheets.Add(dt, "Contacts");
+                    ewb.SaveAs(path);
+                }
+            }
+            catch (Exception ex)
+            {
+                return (false, "An error occurred while creating the file. " + ex.Message);
             }
 
-            await _mailService.SendExportContactEmail(email, savePath);
+            var result = await _mailService.SendExportContactEmail(exportContactDTO.Email, path);
+            if (!result)
+                return (false, "An error occurred while exporting by email.");
 
-            return true;
+            return (true, "Your contacts has been Export successfully."); ;
         }
         private void DeleteImage(string imageURL)
         {
@@ -436,10 +475,6 @@ namespace ContactBook_Services
                     File.Delete(imageURL);
                 }
             }
-        }
-        private string GetImagesPath()
-        {
-            return _environment.WebRootPath + "\\Uplodes\\Contact-Image";
         }
         private async Task<User> GetCurrentUser()
         {

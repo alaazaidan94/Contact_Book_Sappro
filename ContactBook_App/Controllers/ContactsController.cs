@@ -1,6 +1,5 @@
 ﻿using ContactBook_Domain.Models;
 using ContactBook_Services;
-using ContactBook_Services.DTOs.Account;
 using ContactBook_Services.DTOs.Contact;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -76,6 +75,17 @@ namespace ContactBook_App.Controllers
 
         }
 
+        [HttpPost("{contactId}/isFavorate")]
+        public async Task<IActionResult> UpdatePatchContact(int contactId)
+        {
+           (bool result, string message) =  await _contactService.EditIsFavorate(contactId);
+
+            if (!result)
+                return BadRequest(message);
+
+            return Ok(message);
+        }
+
         [HttpDelete("{contactId}")]
         public async Task<IActionResult> DeleteContact(int contactId)
         {
@@ -132,14 +142,18 @@ namespace ContactBook_App.Controllers
         }
 
         [HttpPost("export-via-email")]
-        public async Task<IActionResult> ExportContacts(EmailDTO emailDTO)
+        public async Task<IActionResult> ExportContacts(ExportContactDTO exportContactDTO)
         {
-            var state = await _contactService.ExportContact(emailDTO.Email);
+            (bool result, string message) = await _contactService.ExportContact(exportContactDTO);
 
-            if (!state)
-                return BadRequest();
+            if (!result)
+                return BadRequest(message);
 
-            return Ok();
+            return Ok(new JsonResult(new
+            {
+                title = "Export success",
+                message = message
+            }));
         }
 
     }
